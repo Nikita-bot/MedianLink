@@ -23,7 +23,7 @@ services:
     environment:
       - NODE_ENV=production
     ports:
-      - "3000:3000"
+      - "3000:443"
     networks:
       - webrtc_net
     depends_on:
