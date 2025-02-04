@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    image: webrtc-backend
+    environment:
+      - GO_ENV=production
+    ports:
+      - "8080:8080"
+    networks:
+      - webrtc_net
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: ["go", "run", "main.go"]
+  
+  frontend:
+    build:
+      context: ./frontend
+    image: webrtc-frontend
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - webrtc_net
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf
+      - ./cert:/etc/nginx/ssl
+    working_dir: /usr/share/nginx/html
+    command: ["nginx", "-g", "daemon off;"]
+
+networks:
+  webrtc_net:
