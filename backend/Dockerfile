@@ -1,10 +1,33 @@
-FROM golang:1.23
-
+# Этап 1: Сборка Go-приложения
+FROM golang:alpine AS builder
 
 WORKDIR /app
+
+# Устанавливаем зависимости для сборки
+RUN apk add --no-cache git
+
+# Копируем файлы проекта
 COPY . .
 
-RUN go mod tidy
-RUN go build -o main .
+# Скачиваем зависимости и компилируем Go-приложение
+RUN go mod download
 
-CMD ["/app/main"]
+RUN go build -ldflags="-s -w" -o /app/server ./main.go
+
+# Этап 2: Минимальный образ для запуска
+FROM alpine:latest
+
+RUN apk update --no-cache
+
+WORKDIR /app
+
+COPY ./cert app/cert
+
+# Копируем скомпилированный бинарник из builder-образа
+COPY --from=builder /app/server /app/server
+
+# Открываем порт 8888
+EXPOSE 8080
+
+# Запускаем сервер
+CMD ["/app/server"]
