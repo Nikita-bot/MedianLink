@@ -22,6 +22,7 @@ RUN apk update --no-cache
 WORKDIR /app
 
 COPY ./cert app/cert
+COPY ./frontend app/frontend
 
 # Копируем скомпилированный бинарник из builder-образа
 COPY --from=builder /app/server /app/server

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"log"
 	"net/http"
-	"crypto/tls"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -21,7 +21,7 @@ var mutex = &sync.Mutex{}
 func main() {
 	mux := http.NewServeMux()
 
-	fs := http.FileServer(http.Dir("frontend"))
+	fs := http.FileServer(http.Dir("app/frontend"))
 	mux.Handle("/", fs)
 	mux.HandleFunc("/ws", handleWebSocket)
 

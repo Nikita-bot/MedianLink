@@ -24,7 +24,7 @@ const configuration = {
 
 // Подключение к WebSocket
 function connectWebSocket() {
-    ws = new WebSocket('wss://median-map.online/ws');
+    ws = new WebSocket('wss://median-map.online:8080/ws');
 
     ws.onopen = () => {
         console.log("WebSocket соединение установлено");
