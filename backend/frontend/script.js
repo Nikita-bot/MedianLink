@@ -7,6 +7,7 @@ let localStream;
 let remoteStream;
 let peerConnection;
 let ws;
+let onlineCount = 0;
 
 // Конфигурация ICE-серверов (STUN)
 const configuration = {
@@ -21,6 +22,26 @@ const configuration = {
         },
     ],
 };
+
+document.getElementById("loginBtn").addEventListener("click", function() {
+    const login = document.getElementById("login").value;
+    const password = document.getElementById("password").value;
+    
+    fetch("/checkUser", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `login=${login}&password=${password}`
+    })
+    .then(response => response.text())
+    .then(data => {
+        if (data === "Ok") {
+            document.getElementById("authContainer").style.display = "none";
+            document.getElementById("chatContainer").style.display = "block";
+        } else {
+            document.getElementById("error").textContent = "Неверные данные!";
+        }
+    });
+});
 
 // Подключение к WebSocket
 function connectWebSocket() {
@@ -93,6 +114,8 @@ function createPeerConnection() {
 startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
     endCallButton.disabled = false;
+    onlineCount++;
+    document.getElementById("onlineCount").textContent = onlineCount;
 
     try {
         // Получение локального аудиопотока (микрофон)
@@ -117,6 +140,8 @@ startCallButton.addEventListener('click', async () => {
 endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
+    onlineCount--;
+    document.getElementById("onlineCount").textContent = onlineCount;
 
     // Остановка всех треков
     if (localStream) {
