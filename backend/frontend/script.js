@@ -23,6 +23,19 @@ const configuration = {
     ],
 };
 
+async function updateOnlineCount() {
+    try {
+        const response = await fetch("/count");
+        const onlineCount = await response.text();
+        document.getElementById("onlineCount").textContent = onlineCount;
+    } catch (error) {
+        console.error("Ошибка при получении количества онлайн-пользователей:", error);
+    }
+}
+
+// Запуск обновления каждую секунду
+setInterval(updateOnlineCount, 1000);
+
 document.getElementById("loginBtn").addEventListener("click", function() {
     const login = document.getElementById("login").value;
     const password = document.getElementById("password").value;
@@ -115,8 +128,7 @@ function createPeerConnection() {
 startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
     endCallButton.disabled = false; 
-    onlineCount=await fetch("/count").then(response => response.text());
-    document.getElementById("onlineCount").textContent = onlineCount;
+    updateOnlineCount()
 
     try {
         // Получение локального аудиопотока (микрофон)
@@ -141,8 +153,6 @@ startCallButton.addEventListener('click', async () => {
 endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
-    onlineCount--;
-    document.getElementById("onlineCount").textContent = onlineCount;
 
     // Остановка всех треков
     if (localStream) {
