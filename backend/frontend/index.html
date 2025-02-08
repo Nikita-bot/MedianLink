@@ -3,19 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Voice Chat</title>
+    <title>Авторизация</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #chatContainer { display: none; }
+    </style>
 </head>
 <body>
-    <h1>Голосовой чат</h1>
-    <button id="startCall">Начать звонок</button>
-    <button id="endCall" disabled>Завершить звонок</button>
+    <div id="authContainer">
+        <h2>Введите данные</h2>
+        <input type="text" id="login" placeholder="Логин"><br><br>
+        <input type="password" id="password" placeholder="Пароль"><br><br>
+        <button id="loginBtn">Войти</button>
+        <p id="error" style="color: red;"></p>
+    </div>
 
-    <h2>Локальное аудио</h2>
-    <audio id="localAudio" autoplay muted></audio>
+    <div id="chatContainer">
+        <h1>Голосовой чат</h1>
+        <button id="startCall">Начать звонок</button>
+        <button id="endCall" disabled>Завершить звонок</button>
+        <p id="online">Сейчас онлайн: <span id="onlineCount">0</span></p>
+        <audio id="localAudio" autoplay muted></audio>
+        <audio id="remoteAudio" autoplay></audio>
+    </div>
 
-    <h2>Удаленное аудио</h2>
-    <audio id="remoteAudio" autoplay></audio>
+    <script>
 
-    <script src="script.js"></script>
+        const configuration = {
+            iceServers: [
+                {
+                    urls: "stun:stun.l.google.com:19302",
+                },
+                {
+                    urls: "turn:your-turn-server.com:3478",
+                    username: "your-username",
+                    credential: "your-password",
+                },
+            ],
+        };
+
+        let ws;
+        let onlineCount = 0;
+        let localStream;
+        let remoteStream;
+        let peerConnection;
+        
+        document.getElementById("loginBtn").addEventListener("click", function() {
+            const login = document.getElementById("login").value;
+            const password = document.getElementById("password").value;
+            
+            fetch("/checkUser", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `login=${login}&password=${password}`
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data === "Ok") {
+                    document.getElementById("authContainer").style.display = "none";
+                    document.getElementById("chatContainer").style.display = "block";
+                } else {
+                    document.getElementById("error").textContent = "Неверные данные!";
+                }
+            });
+        });
+
+        document.getElementById("startCall").addEventListener("click",function() {
+            ws = new WebSocket("wss://median-map.online:8080/ws/");
+
+            
+            ws.onopen = async() =>{
+                onlineCount++;
+                document.getElementById("onlineCount").textContent = onlineCount;
+                document.getElementById("startCall").disabled = true;
+                document.getElementById("endCall").disabled = false;
+                try {
+                // Получение локального аудиопотока (микрофон)
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    localAudio.srcObject = localStream;
+
+                    // Создание PeerConnection
+                    createPeerConnection();
+
+                    // Создание offer
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    // Отправка offer через WebSocket
+                    ws.send(JSON.stringify({ offer }));
+                } catch (error) {
+                    console.error("Ошибка при начале звонка:", error);
+                }
+            };
+
+            ws.onmessage = async (event) => {
+                const message = JSON.parse(event.data);
+
+                if (message.offer) {
+                    // Получен offer от другого клиента
+                    await handleOffer(message.offer);
+                } else if (message.answer) {
+                    // Получен answer от другого клиента
+                    await peerConnection.setRemoteDescription(message.answer);
+                } else if (message.candidate) {
+                    // Получен ICE-кандидат
+                    await peerConnection.addIceCandidate(message.candidate);
+                }
+            };
+
+            ws.onclose = function() {
+                onlineCount = Math.max(0, onlineCount - 1);
+                document.getElementById("onlineCount").textContent = onlineCount;
+                document.getElementById("startCall").disabled = false;
+                document.getElementById("endCall").disabled = true;
+                // Остановка всех треков
+                if (localStream) {
+                    localStream.getTracks().forEach((track) => track.stop());
+                }
+                if (remoteStream) {
+                    remoteStream.getTracks().forEach((track) => track.stop());
+                }
+
+                // Закрытие PeerConnection
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+
+                // Сброс аудиоэлементов
+                localAudio.srcObject = null;
+                remoteAudio.srcObject = null;
+
+                console.log("Звонок завершен.");
+            };
+        });
+
+        document.getElementById("endCall").addEventListener("click", function() {
+            if (ws) {
+                ws.close();
+            }
+        });
+
+        async function handleOffer(offer) {
+            if (!peerConnection) {
+                createPeerConnection();
+            }
+
+            await peerConnection.setRemoteDescription(offer);
+
+            // Создание answer
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            // Отправка answer через WebSocket
+            ws.send(JSON.stringify({ answer }));
+        }
+
+        // Создание PeerConnection
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // Добавление локального аудиопотока
+            localStream.getTracks().forEach((track) => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            // Обработка удаленного аудиопотока
+            peerConnection.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                remoteAudio.srcObject = remoteStream;
+            };
+
+            // Отправка ICE-кандидатов
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    ws.send(JSON.stringify({ candidate: event.candidate }));
+                }
+            };
+        }
+    </script>
 </body>
 </html>

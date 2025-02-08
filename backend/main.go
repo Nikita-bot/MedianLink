@@ -9,11 +9,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
+var (
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	loginPhone    = "MedianLinkTwoPhones"
+	passwordPhone = "Median?Link_Two-Phones123.34"
+)
 
 var clients = make(map[*websocket.Conn]bool)
 var mutex = &sync.Mutex{}
@@ -24,8 +28,8 @@ func main() {
 	fs := http.FileServer(http.Dir("app/frontend"))
 	mux.Handle("/", fs)
 	mux.HandleFunc("/ws", handleWebSocket)
+	mux.HandleFunc("/checkUser", checkUser)
 
-	// TLS-сертификатыc
 	certFile := "app/cert/median-map_online_cert.pem"
 	keyFile := "app/cert/median-map_online_private_key.pem"
 
@@ -39,12 +43,25 @@ func main() {
 
 	log.Println("WebSocket-сервер запущен на wss://median-map.online/ws/")
 	err := server.ListenAndServeTLS(certFile, keyFile)
+
 	if err != nil {
 		log.Fatal("Ошибка запуска сервера:", err)
 	}
 }
 
+func checkUser(w http.ResponseWriter, r *http.Request) {
+	login := r.FormValue("login")
+	password := r.FormValue("password")
+
+	if login == loginPhone && password == passwordPhone {
+		w.Write([]byte("Ok"))
+	} else {
+		w.Write([]byte("Failed"))
+	}
+}
+
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log.Println("Новое соединение")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Ошибка при обновлении соединения:", err)
