@@ -37,6 +37,7 @@ document.getElementById("loginBtn").addEventListener("click", function() {
         if (data === "Ok") {
             document.getElementById("authContainer").style.display = "none";
             document.getElementById("chatContainer").style.display = "block";
+            connectWebSocket();
         } else {
             document.getElementById("error").textContent = "Неверные данные!";
         }
@@ -113,8 +114,8 @@ function createPeerConnection() {
 // Начало звонка
 startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
-    endCallButton.disabled = false;
-    onlineCount++;
+    endCallButton.disabled = false; 
+    onlineCount=await fetch("/count").then(response => response.text());
     document.getElementById("onlineCount").textContent = onlineCount;
 
     try {
@@ -164,4 +165,3 @@ endCallButton.addEventListener('click', () => {
 });
 
 // Инициализация WebSocket
-connectWebSocket();

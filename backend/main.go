@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -29,6 +30,7 @@ func main() {
 	mux.Handle("/", fs)
 	mux.HandleFunc("/ws", handleWebSocket)
 	mux.HandleFunc("/checkUser", checkUser)
+	mux.HandleFunc("/count", countUsers)
 
 	certFile := "app/cert/median-map_online_cert.pem"
 	keyFile := "app/cert/median-map_online_private_key.pem"
@@ -47,6 +49,14 @@ func main() {
 	if err != nil {
 		log.Fatal("Ошибка запуска сервера:", err)
 	}
+}
+
+func countUsers(w http.ResponseWriter, r *http.Request) {
+	mutex.Lock()
+	count := len(clients)
+	mutex.Unlock()
+
+	w.Write([]byte(strconv.Itoa(count)))
 }
 
 func checkUser(w http.ResponseWriter, r *http.Request) {
