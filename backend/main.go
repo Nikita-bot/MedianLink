@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/caarlos0/env/v9"
 	"github.com/gorilla/websocket"
 )
 
@@ -16,20 +17,48 @@ var (
 			return true
 		},
 	}
-	loginPhone    = "MedianLinkTwoPhones"
-	passwordPhone = "Median?Link_Two-Phones123.34"
 )
+
+type Config struct {
+	Login    string `env:"LOGIN"`
+	Password string `env:"PASSWORD"`
+}
 
 var clients = make(map[*websocket.Conn]bool)
 var mutex = &sync.Mutex{}
 
+func New() (Config, error) {
+	var c Config
+
+	err := env.ParseWithOptions(&c, env.Options{RequiredIfNoDef: true})
+	if err != nil {
+		return Config{}, err
+	}
+	return c, nil
+}
+
 func main() {
 	mux := http.NewServeMux()
+
+	c, err := New()
+	if err != nil {
+		log.Fatal("Ошибка при загрузке конфигурации:", err)
+		return
+	}
 
 	fs := http.FileServer(http.Dir("app/frontend"))
 	mux.Handle("/", fs)
 	mux.HandleFunc("/ws", handleWebSocket)
-	mux.HandleFunc("/checkUser", checkUser)
+	mux.HandleFunc("/checkUser", func(w http.ResponseWriter, r *http.Request) {
+		login := r.FormValue("login")
+		password := r.FormValue("password")
+
+		if login == c.Login && password == c.Password {
+			w.Write([]byte("Ok"))
+		} else {
+			w.Write([]byte("Failed"))
+		}
+	})
 	mux.HandleFunc("/count", countUsers)
 
 	certFile := "app/cert/median-map_online_cert.pem"
@@ -44,7 +73,7 @@ func main() {
 	}
 
 	log.Println("WebSocket-сервер запущен на wss://median-map.online/ws/")
-	err := server.ListenAndServeTLS(certFile, keyFile)
+	err = server.ListenAndServeTLS(certFile, keyFile)
 
 	if err != nil {
 		log.Fatal("Ошибка запуска сервера:", err)
@@ -57,17 +86,6 @@ func countUsers(w http.ResponseWriter, r *http.Request) {
 	mutex.Unlock()
 
 	w.Write([]byte(strconv.Itoa(count)))
-}
-
-func checkUser(w http.ResponseWriter, r *http.Request) {
-	login := r.FormValue("login")
-	password := r.FormValue("password")
-
-	if login == loginPhone && password == passwordPhone {
-		w.Write([]byte("Ok"))
-	} else {
-		w.Write([]byte("Failed"))
-	}
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {

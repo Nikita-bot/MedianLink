@@ -3,6 +3,8 @@ version: '3.8'
 services:
   backend:
     container_name: median_link
+    env_file:
+      - .env
     build: 
       context: ./backend
       dockerfile: Dockerfile
