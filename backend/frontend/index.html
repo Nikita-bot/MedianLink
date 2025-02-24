@@ -12,8 +12,19 @@
 <body>
     <div id="authContainer">
         <h2>Введите данные</h2>
-        <input type="text" id="login" placeholder="Логин"><br><br>
-        <input type="password" id="password" placeholder="Пароль"><br><br>
+        <div class="keypad">
+            <button onclick="addDigit('1')">1</button>
+            <button onclick="addDigit('2')">2</button>
+            <button onclick="addDigit('3')">3</button>
+            <button onclick="addDigit('4')">4</button>
+            <button onclick="addDigit('5')">5</button>
+            <button onclick="addDigit('6')">6</button>
+            <button onclick="addDigit('7')">7</button>
+            <button onclick="addDigit('8')">8</button>
+            <button onclick="addDigit('9')">9</button>
+            <button onclick="addDigit('0')">0</button>
+            <button onclick="clearPin()">Очистить поле </button>
+        </div>
         <button id="loginBtn">Войти</button>
         <p id="error" style="color: red;"></p>
     </div>

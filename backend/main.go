@@ -20,8 +20,7 @@ var (
 )
 
 type Config struct {
-	Login    string `env:"LOGIN"`
-	Password string `env:"PASSWORD"`
+	Login string `env:"LOGIN"`
 }
 
 var clients = make(map[*websocket.Conn]bool)
@@ -51,9 +50,8 @@ func main() {
 	mux.HandleFunc("/ws", handleWebSocket)
 	mux.HandleFunc("/checkUser", func(w http.ResponseWriter, r *http.Request) {
 		login := r.FormValue("login")
-		password := r.FormValue("password")
 
-		if login == c.Login && password == c.Password {
+		if login == c.Login {
 			w.Write([]byte("Ok"))
 		} else {
 			w.Write([]byte("Failed"))

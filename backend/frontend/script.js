@@ -8,8 +8,8 @@ let remoteStream;
 let peerConnection;
 let ws;
 let onlineCount = 0;
+let enteredPin = '';
 
-// Конфигурация ICE-серверов (STUN)
 const configuration = {
     iceServers: [
         {
@@ -23,6 +23,19 @@ const configuration = {
     ],
 };
 
+function addDigit(digit) {
+    if (enteredPin.length < 5) {
+        enteredPin += digit;
+        document.getElementById('inputDisplay').textContent = enteredPin.padEnd(5, '-');
+    }
+}
+
+function clearPin() {
+    enteredPin = '';
+    document.getElementById('inputDisplay').textContent = '-----';
+    document.getElementById('status').textContent = 'uc0u1047 u1072 u1082 u1088 u1099 u1090 u1086 ';
+}
+
 async function updateOnlineCount() {
     try {
         const response = await fetch("/count");
@@ -33,7 +46,6 @@ async function updateOnlineCount() {
     }
 }
 
-// Запуск обновления каждую секунду
 setInterval(updateOnlineCount, 1000);
 
 document.getElementById("loginBtn").addEventListener("click", function() {
@@ -57,7 +69,7 @@ document.getElementById("loginBtn").addEventListener("click", function() {
     });
 });
 
-// Подключение к WebSocket
+
 function connectWebSocket() {
     ws = new WebSocket('wss://median-map.online:8080/ws');
 
@@ -69,13 +81,10 @@ function connectWebSocket() {
         const message = JSON.parse(event.data);
 
         if (message.offer) {
-            // Получен offer от другого клиента
             await handleOffer(message.offer);
         } else if (message.answer) {
-            // Получен answer от другого клиента
             await peerConnection.setRemoteDescription(message.answer);
         } else if (message.candidate) {
-            // Получен ICE-кандидат
             await peerConnection.addIceCandidate(message.candidate);
         }
     };
@@ -85,7 +94,7 @@ function connectWebSocket() {
     };
 }
 
-// Обработка offer
+
 async function handleOffer(offer) {
     if (!peerConnection) {
         createPeerConnection();
@@ -93,30 +102,24 @@ async function handleOffer(offer) {
 
     await peerConnection.setRemoteDescription(offer);
 
-    // Создание answer
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    // Отправка answer через WebSocket
     ws.send(JSON.stringify({ answer }));
 }
 
-// Создание PeerConnection
 function createPeerConnection() {
     peerConnection = new RTCPeerConnection(configuration);
 
-    // Добавление локального аудиопотока
     localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
     });
 
-    // Обработка удаленного аудиопотока
     peerConnection.ontrack = (event) => {
         remoteStream = event.streams[0];
         remoteAudio.srcObject = remoteStream;
     };
 
-    // Отправка ICE-кандидатов
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             ws.send(JSON.stringify({ candidate: event.candidate }));
@@ -124,37 +127,32 @@ function createPeerConnection() {
     };
 }
 
-// Начало звонка
 startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
     endCallButton.disabled = false; 
     updateOnlineCount()
 
     try {
-        // Получение локального аудиопотока (микрофон)
+
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         localAudio.srcObject = localStream;
 
-        // Создание PeerConnection
         createPeerConnection();
 
-        // Создание offer
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        // Отправка offer через WebSocket
         ws.send(JSON.stringify({ offer }));
     } catch (error) {
         console.error("Ошибка при начале звонка:", error);
     }
 });
 
-// Завершение звонка
+
 endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
 
-    // Остановка всех треков
     if (localStream) {
         localStream.getTracks().forEach((track) => track.stop());
     }
@@ -162,16 +160,13 @@ endCallButton.addEventListener('click', () => {
         remoteStream.getTracks().forEach((track) => track.stop());
     }
 
-    // Закрытие PeerConnection
     if (peerConnection) {
         peerConnection.close();
     }
 
-    // Сброс аудиоэлементов
     localAudio.srcObject = null;
     remoteAudio.srcObject = null;
 
     console.log("Звонок завершен.");
 });
 
-// Инициализация WebSocket
