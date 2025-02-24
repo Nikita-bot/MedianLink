@@ -24,16 +24,13 @@ const configuration = {
 };
 
 function addDigit(digit) {
-    if (enteredPin.length < 5) {
         enteredPin += digit;
-        document.getElementById('inputDisplay').textContent = enteredPin.padEnd(5, '-');
-    }
+        document.getElementById('login').innerText = enteredPin;
 }
 
 function clearPin() {
     enteredPin = '';
-    document.getElementById('inputDisplay').textContent = '-----';
-    document.getElementById('status').textContent = 'uc0u1047 u1072 u1082 u1088 u1099 u1090 u1086 ';
+    document.getElementById('login').innerText = '';
 }
 
 async function updateOnlineCount() {
@@ -49,13 +46,12 @@ async function updateOnlineCount() {
 setInterval(updateOnlineCount, 1000);
 
 document.getElementById("loginBtn").addEventListener("click", function() {
-    const login = document.getElementById("login").value;
-    const password = document.getElementById("password").value;
+    const login = document.getElementById("login").innerText;
     
     fetch("/checkUser", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `login=${login}&password=${password}`
+        body: `login=${login}`
     })
     .then(response => response.text())
     .then(data => {
