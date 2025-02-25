@@ -12,7 +12,14 @@ let enteredPin = '';
 
 const configuration = {
     iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
+        {
+            urls: "stun:stun.l.google.com:19302",
+        },
+        {
+            urls: "turn:your-turn-server.com:3478",
+            username: "your-username",
+            credential: "your-password",
+        },
     ],
 };
 
@@ -80,7 +87,7 @@ async function getLocalIP() {
 
 // Подключение к WebSocket
 async function connectWebSocket() {
-    ws = new WebSocket('wss://median-map.online:8080/ws');
+    ws = new WebSocket('wss://median-map.online:8888/ws');
 
     ws.onopen = () => {
         console.log("WebSocket соединение установлено");
