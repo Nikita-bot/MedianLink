@@ -5,13 +5,132 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Авторизация</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #chatContainer { display: none; }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        #chatContainer {
+            text-align: center;
+            background: #333;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+        
+        button {
+            width: 150px;
+            height: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+        
+        #startCall {
+            background-color: green;
+            color: white;
+            width: 250px;
+        }
+        
+        #startCall:hover {
+            background-color: darkgreen;
+        }
+        
+        #endCall {
+            background-color: crimson;
+            color: white;
+            width: 250px;
+        }
+
+        #startCall:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+        
+        #endCall:hover {
+            background-color: darkred;
+        }
+        
+        #endCall:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+        
+        #online {
+            margin-top: 15px;
+            font-size: 30px;
+        }
+        
+        #login {
+            font-size: 24px;
+            margin-bottom: 10px;
+            min-height: 30px;
+            text-align: center;
+        }
+        
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 200px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            width: 60px;
+            height: 60px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            background-color: #444;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background-color: #666;
+        }
+        
+        .clear-btn, #loginBtn {
+            grid-column: span 3;
+            width: 250px;
+            height: 50px;
+            background-color: crimson;
+        }
+        
+        #loginBtn {
+            background-color: green;
+        }
+
+        .zero{
+            width: 250px;
+        }
+
+        .actionButtons{
+            display: block;
+        }
+
+        
+    </style>
+       
     </style>
 </head>
 <body>
     <div id="authContainer">
-        <h2>Введите данные</h2>
+        <h2>Введите PIN</h2>
         <p id="login"></p>
         <div class="keypad">
             <button onclick="addDigit('1')">1</button>
@@ -23,15 +142,19 @@
             <button onclick="addDigit('7')">7</button>
             <button onclick="addDigit('8')">8</button>
             <button onclick="addDigit('9')">9</button>
-            <button onclick="addDigit('0')">0</button>
-            <button onclick="clearPin()">Очистить поле </button>
         </div>
-        <button id="loginBtn">Войти</button>
+        <div class="actionButtons">
+            <button class="zero" onclick="addDigit('0')">0</button>
+            <p></p>
+            <button class="clear-btn" onclick="clearPin()">Очистить</button>
+            <p></p>
+            <button id="loginBtn">Войти</button>
+        </div>
         <p id="error" style="color: red;"></p>
     </div>
 
     <div id="chatContainer">
-        <h1>Голосовой чат</h1>
+
         <button id="startCall">Начать звонок</button>
         <button id="endCall" disabled>Завершить звонок</button>
         <p id="online">Сейчас онлайн: <span id="onlineCount">0</span></p>
