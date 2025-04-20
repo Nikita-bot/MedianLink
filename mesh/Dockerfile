@@ -28,7 +28,7 @@ COPY ./frontend app/frontend
 COPY --from=builder /app/server /app/server
 
 # Открываем порт 8888
-EXPOSE 8888
+EXPOSE 4043
 
 # Запускаем сервер
 CMD ["/app/server"]

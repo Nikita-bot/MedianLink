@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  backend:
+  median_link:
     container_name: median_link
     env_file:
       - .env
@@ -12,7 +12,7 @@ services:
       - 8080:8080
     restart: always
 
-  backend:
+  median_mesh:
     container_name: median_mesh
     env_file:
       - .env
@@ -20,5 +20,5 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - 8888:8888
+      - 4043:4043
     restart: always

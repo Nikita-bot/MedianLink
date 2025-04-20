@@ -63,14 +63,14 @@ func main() {
 	keyFile := "app/cert/median-map_online_private_key.pem"
 
 	server := &http.Server{
-		Addr:    ":8888",
+		Addr:    ":4043",
 		Handler: mux,
 		TLSConfig: &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		},
 	}
 
-	log.Println("WebSocket-сервер запущен на wss://median-map.online/ws/")
+	log.Println("WebSocket-сервер запущен на wss://median-map.online/ws/", server.Addr)
 	err = server.ListenAndServeTLS(certFile, keyFile)
 
 	if err != nil {
