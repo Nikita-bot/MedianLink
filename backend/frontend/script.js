@@ -9,6 +9,8 @@ let peerConnection;
 let ws;
 let onlineCount = 0;
 let enteredPin = '';
+let isCallActive = false;
+let activeUsers = 0;
 
 const configuration = {
     iceServers: [
@@ -38,12 +40,35 @@ async function updateOnlineCount() {
         const response = await fetch("/count");
         const onlineCount = await response.text();
         document.getElementById("onlineCount").textContent = onlineCount;
+        updateCallButtonState();
     } catch (error) {
         console.error("Ошибка при получении количества онлайн-пользователей:", error);
     }
 }
 
 setInterval(updateOnlineCount, 1000);
+
+
+function updateCheckers() {
+    const check1 = document.getElementById("check1");
+    const check2 = document.getElementById("check2");
+
+    check1.style.backgroundColor = "";
+    check2.style.backgroundColor = "";
+
+
+    if (isCallActive) {
+        check1.style.backgroundColor = "green"; 
+        if (activeUsers >= 2) {
+            check2.style.backgroundColor = "green"; 
+        }
+    }
+}
+
+function updateCallButtonState() {
+    const canStartCall = !isCallActive && onlineCount >= 2;
+    startCallButton.disabled = !canStartCall;
+}
 
 document.getElementById("loginBtn").addEventListener("click", function() {
     const login = document.getElementById("login").innerText;
@@ -77,11 +102,25 @@ function connectWebSocket() {
         const message = JSON.parse(event.data);
 
         if (message.offer) {
+            isCallActive = true;
+            activeUsers = 2; 
+            updateCheckers();
+            updateCallButtonState();
             await handleOffer(message.offer);
         } else if (message.answer) {
             await peerConnection.setRemoteDescription(message.answer);
         } else if (message.candidate) {
             await peerConnection.addIceCandidate(message.candidate);
+        } else if (message.action === "call_started") {
+            isCallActive = true;
+            activeUsers = 1;
+            updateCheckers();
+            updateCallButtonState();
+        } else if (message.action === "call_ended") {
+            isCallActive = false;
+            activeUsers = 0;
+            updateCheckers();
+            updateCallButtonState();
         }
     };
 
@@ -125,8 +164,13 @@ function createPeerConnection() {
 
 startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
-    endCallButton.disabled = false; 
-    updateOnlineCount()
+    endCallButton.disabled = false;
+    
+    isCallActive = true;
+    activeUsers = 1;
+
+    updateCheckers();
+    updateCallButtonState();
 
     try {
 
@@ -138,9 +182,17 @@ startCallButton.addEventListener('click', async () => {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        ws.send(JSON.stringify({ offer }));
+        ws.send(JSON.stringify({ 
+            offer,
+            action: "call_started" 
+        }));
+
     } catch (error) {
         console.error("Ошибка при начале звонка:", error);
+        isCallActive = false;
+        activeUsers = 0;
+        updateCheckers();
+        updateCallButtonState();
     }
 });
 
@@ -148,6 +200,12 @@ startCallButton.addEventListener('click', async () => {
 endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
+    isCallActive = false;
+    activeUsers = 0;
+
+    updateCheckers();
+    updateCallButtonState();
+
 
     if (localStream) {
         localStream.getTracks().forEach((track) => track.stop());
@@ -162,6 +220,11 @@ endCallButton.addEventListener('click', () => {
 
     localAudio.srcObject = null;
     remoteAudio.srcObject = null;
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "call_ended" }));
+    }
+
 
     console.log("Звонок завершен.");
 });

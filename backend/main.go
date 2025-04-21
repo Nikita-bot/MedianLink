@@ -19,9 +19,18 @@ var (
 	}
 )
 
-type Config struct {
-	Login string `env:"LOGIN"`
-}
+type (
+	Config struct {
+		Login string `env:"LOGIN"`
+	}
+
+	WSMessage struct {
+		Action    string      `json:"action,omitempty"`    // "call_started", "call_ended"
+		Offer     interface{} `json:"offer,omitempty"`     // WebRTC offer
+		Answer    interface{} `json:"answer,omitempty"`    // WebRTC answer
+		Candidate interface{} `json:"candidate,omitempty"` // ICE candidate
+	}
+)
 
 var clients = make(map[*websocket.Conn]bool)
 var mutex = &sync.Mutex{}
@@ -103,26 +112,33 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("Новый клиент подключен")
 
 	for {
-		var msg map[string]interface{}
+		var msg WSMessage
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			log.Println("Ошибка при чтении сообщения:", err)
 			break
 		}
 
-		log.Printf("Получено сообщение: %v", msg)
-
-		// Рассылка другим клиентам
 		mutex.Lock()
 		for client := range clients {
-			if client != conn {
+			if msg.Action == "call_started" || msg.Action == "call_ended" {
 				err := client.WriteJSON(msg)
 				if err != nil {
 					log.Println("Ошибка при отправке сообщения:", err)
 					client.Close()
 					delete(clients, client)
 				}
+			} else {
+				if client != conn {
+					err := client.WriteJSON(msg)
+					if err != nil {
+						log.Println("Ошибка при отправке сообщения:", err)
+						client.Close()
+						delete(clients, client)
+					}
+				}
 			}
+
 		}
 		mutex.Unlock()
 	}

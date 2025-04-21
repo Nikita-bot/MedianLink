@@ -123,7 +123,19 @@
             display: block;
         }
 
-        
+        .checkers {
+            height: 20px;
+            display: flex; /* Добавляем flex для выравнивания кружков */
+            gap: 5px; /* Расстояние между кружками */
+        }
+        .chek {
+            width: 20px;
+            height: 20px; /* Явно задаем высоту */
+            border-radius: 100%;
+            background-color: grey; /* Добавляем цвет фона */
+            margin: 0 auto;
+        }
+
     </style>
        
     </style>
@@ -158,6 +170,10 @@
         <button id="startCall">Начать звонок</button>
         <button id="endCall" disabled>Завершить звонок</button>
         <p id="online">Сейчас онлайн: <span id="onlineCount">0</span></p>
+        <div class="checkers">
+            <div id="check1" class="chek"></div>
+            <div id="check2" class="chek"></div>
+        </div>
         <audio id="localAudio" autoplay muted></audio>
         <audio id="remoteAudio" autoplay></audio>
     </div>
