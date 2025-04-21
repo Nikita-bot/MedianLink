@@ -66,8 +66,8 @@ function updateCheckers() {
 }
 
 function updateCallButtonState() {
-    const canStartCall = !isCallActive && onlineCount >= 2;
-    startCallButton.disabled = !canStartCall;
+    const canStartCall = !isCallActive && activeUsers >= 2;
+    startCallButton.disabled = canStartCall;
 }
 
 document.getElementById("loginBtn").addEventListener("click", function() {
@@ -103,7 +103,6 @@ function connectWebSocket() {
 
         if (message.offer) {
             isCallActive = true;
-            activeUsers = 2; 
             updateCheckers();
             updateCallButtonState();
             await handleOffer(message.offer);
@@ -113,12 +112,12 @@ function connectWebSocket() {
             await peerConnection.addIceCandidate(message.candidate);
         } else if (message.action === "call_started") {
             isCallActive = true;
-            activeUsers = 1;
+            activeUsers += 1;
             updateCheckers();
             updateCallButtonState();
         } else if (message.action === "call_ended") {
             isCallActive = false;
-            activeUsers = 0;
+            activeUsers -= 1;
             updateCheckers();
             updateCallButtonState();
         }
@@ -167,7 +166,7 @@ startCallButton.addEventListener('click', async () => {
     endCallButton.disabled = false;
     
     isCallActive = true;
-    activeUsers = 1;
+    activeUsers += 1;
 
     updateCheckers();
     updateCallButtonState();
@@ -190,7 +189,7 @@ startCallButton.addEventListener('click', async () => {
     } catch (error) {
         console.error("Ошибка при начале звонка:", error);
         isCallActive = false;
-        activeUsers = 0;
+        activeUsers -= 1;
         updateCheckers();
         updateCallButtonState();
     }
@@ -201,7 +200,7 @@ endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
     isCallActive = false;
-    activeUsers = 0;
+    activeUsers -= 1;
 
     updateCheckers();
     updateCallButtonState();
