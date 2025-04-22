@@ -118,6 +118,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			log.Println("Ошибка при чтении сообщения:", err)
 			break
 		}
+		log.Println("Новое сообщение:"+msg.Action)
 
 		mutex.Lock()
 		for client := range clients {

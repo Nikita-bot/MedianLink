@@ -40,6 +40,7 @@ async function updateOnlineCount() {
         const response = await fetch("/count");
         const onlineCount = await response.text();
         document.getElementById("onlineCount").textContent = onlineCount;
+        updateCheckers();
         updateCallButtonState();
     } catch (error) {
         console.error("Ошибка при получении количества онлайн-пользователей:", error);
@@ -66,7 +67,7 @@ function updateCheckers() {
 }
 
 function updateCallButtonState() {
-    const canStartCall = !isCallActive && activeUsers >= 2;
+    const canStartCall = activeUsers >= 2;
     startCallButton.disabled = canStartCall;
 }
 
@@ -102,9 +103,6 @@ function connectWebSocket() {
         const message = JSON.parse(event.data);
 
         if (message.offer) {
-            isCallActive = true;
-            updateCheckers();
-            updateCallButtonState();
             await handleOffer(message.offer);
         } else if (message.answer) {
             await peerConnection.setRemoteDescription(message.answer);
@@ -181,15 +179,15 @@ startCallButton.addEventListener('click', async () => {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        ws.send(JSON.stringify({ 
-            offer,
-            action: "call_started" 
-        }));
+        ws.send(JSON.stringify({ offer }));
+        ws.send(JSON.stringify({ action: "call_started" }));
 
     } catch (error) {
         console.error("Ошибка при начале звонка:", error);
         isCallActive = false;
         activeUsers -= 1;
+        startCallButton.disabled = false;
+        endCallButton.disabled = true;
         updateCheckers();
         updateCallButtonState();
     }
