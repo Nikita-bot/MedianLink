@@ -123,11 +123,13 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		mutex.Lock()
 		for client := range clients {
 			if msg.Action == "call_started" || msg.Action == "call_ended" {
-				err := client.WriteJSON(msg)
-				if err != nil {
-					log.Println("Ошибка при отправке сообщения:", err)
-					client.Close()
-					delete(clients, client)
+				if client != conn {
+					err := client.WriteJSON(msg)
+					if err != nil {
+						log.Println("Ошибка при отправке сообщения:", err)
+						client.Close()
+						delete(clients, client)
+					}
 				}
 			} else {
 				if client != conn {
