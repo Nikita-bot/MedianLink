@@ -9,8 +9,8 @@ let peerConnection;
 let ws;
 let onlineCount = 0;
 let enteredPin = '';
-let isCallActive = false;
 let activeUsers = 0;
+let callStarted = false;
 
 const configuration = {
     iceServers: [
@@ -47,7 +47,7 @@ async function updateOnlineCount() {
     }
 }
 
-setInterval(updateOnlineCount, 1000);
+setInterval(updateOnlineCount, 500);
 
 
 function updateCheckers() {
@@ -58,7 +58,7 @@ function updateCheckers() {
     check2.style.backgroundColor = "";
 
 
-    if (isCallActive) {
+    if (activeUsers >= 1) {
         check1.style.backgroundColor = "green"; 
         if (activeUsers >= 2) {
             check2.style.backgroundColor = "green"; 
@@ -67,7 +67,7 @@ function updateCheckers() {
 }
 
 function updateCallButtonState() {
-    const canStartCall = activeUsers >= 2;
+    const canStartCall = activeUsers >= 2 || callStarted;
     startCallButton.disabled = canStartCall;
 }
 
@@ -109,15 +109,10 @@ function connectWebSocket() {
         } else if (message.candidate) {
             await peerConnection.addIceCandidate(message.candidate);
         } else if (message.action === "call_started") {
-            isCallActive = true;
             activeUsers += 1;
-            updateCheckers();
-            updateCallButtonState();
+
         } else if (message.action === "call_ended") {
-            isCallActive = false;
             activeUsers -= 1;
-            updateCheckers();
-            updateCallButtonState();
         }
     };
 
@@ -163,11 +158,8 @@ startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
     endCallButton.disabled = false;
     
-    isCallActive = true;
-    activeUsers += 1;
-
-    updateCheckers();
-    updateCallButtonState();
+    activeUsers +=1;
+    callStarted = true;
 
     try {
 
@@ -184,12 +176,9 @@ startCallButton.addEventListener('click', async () => {
 
     } catch (error) {
         console.error("Ошибка при начале звонка:", error);
-        isCallActive = false;
-        activeUsers -= 1;
         startCallButton.disabled = false;
         endCallButton.disabled = true;
-        updateCheckers();
-        updateCallButtonState();
+        activeUsers -= 1;
     }
 });
 
@@ -197,11 +186,9 @@ startCallButton.addEventListener('click', async () => {
 endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
-    isCallActive = false;
-    activeUsers -= 1;
 
-    updateCheckers();
-    updateCallButtonState();
+    activeUsers -= 1;
+    callStarted = false;
 
 
     if (localStream) {
