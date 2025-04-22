@@ -33,6 +33,7 @@ type (
 )
 
 var clients = make(map[*websocket.Conn]bool)
+var countActive = 0
 var mutex = &sync.Mutex{}
 
 func New() (Config, error) {
@@ -67,6 +68,7 @@ func main() {
 		}
 	})
 	mux.HandleFunc("/count", countUsers)
+	mux.HandleFunc("/active", countActiveUsers)
 
 	certFile := "app/cert/median-map_online_cert.pem"
 	keyFile := "app/cert/median-map_online_private_key.pem"
@@ -95,6 +97,11 @@ func countUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(strconv.Itoa(count)))
 }
 
+func countActiveUsers(w http.ResponseWriter, r *http.Request){
+
+	w.Write([]byte(strconv.Itoa(countActive)))
+}
+
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("Новое соединение")
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -118,19 +125,26 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			log.Println("Ошибка при чтении сообщения:", err)
 			break
 		}
-		log.Println("Новое сообщение:"+msg.Action)
 
 		mutex.Lock()
 		for client := range clients {
 			if msg.Action == "call_started" || msg.Action == "call_ended" {
 				if client != conn {
-					err := client.WriteJSON(msg)
-					if err != nil {
-						log.Println("Ошибка при отправке сообщения:", err)
-						client.Close()
-						delete(clients, client)
+					if msg.Action == "call_started"{		
+						countActive = countActive + 1
+						log.Println("Активных звонарей: ", countActive)
+						break
+					}
+					if msg.Action == "call_ended"{
+						countActive = countActive - 1
+						if countActive < 0 {
+							countActive = 0
+						}
+						log.Println("Активных звонарей: ", countActive)
+						break
 					}
 				}
+				
 			} else {
 				if client != conn {
 					err := client.WriteJSON(msg)
@@ -148,6 +162,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	mutex.Lock()
 	delete(clients, conn)
+	if len(clients) < countActive{
+		countActive = countActive - 1
+	}
 	mutex.Unlock()
 	log.Println("Клиент отключен")
 }

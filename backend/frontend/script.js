@@ -40,6 +40,18 @@ async function updateOnlineCount() {
         const response = await fetch("/count");
         const onlineCount = await response.text();
         document.getElementById("onlineCount").textContent = onlineCount;
+    } catch (error) {
+        console.error("Ошибка при получении количества онлайн-пользователей:", error);
+    }
+}
+
+setInterval(updateOnlineCount, 1000);
+
+async function updateActiveCount() {
+    try {
+        const response = await fetch("/active");
+        const onlineCount = await response.text();
+        activeUsers = Number(onlineCount);
         updateCheckers();
         updateCallButtonState();
     } catch (error) {
@@ -47,7 +59,7 @@ async function updateOnlineCount() {
     }
 }
 
-setInterval(updateOnlineCount, 500);
+setInterval(updateActiveCount, 500);
 
 
 function updateCheckers() {
@@ -108,12 +120,7 @@ function connectWebSocket() {
             await peerConnection.setRemoteDescription(message.answer);
         } else if (message.candidate) {
             await peerConnection.addIceCandidate(message.candidate);
-        } else if (message.action === "call_started") {
-            activeUsers += 1;
-
-        } else if (message.action === "call_ended") {
-            activeUsers -= 1;
-        }
+        } 
     };
 
     ws.onclose = () => {
@@ -136,6 +143,9 @@ async function handleOffer(offer) {
 }
 
 function createPeerConnection() {
+    if (!localStream) {
+        throw new Error("Локальный поток не доступен");
+    }
     peerConnection = new RTCPeerConnection(configuration);
 
     localStream.getTracks().forEach((track) => {
@@ -158,7 +168,7 @@ startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
     endCallButton.disabled = false;
     
-    activeUsers +=1;
+    // activeUsers +=1;
     callStarted = true;
 
     try {
@@ -178,7 +188,7 @@ startCallButton.addEventListener('click', async () => {
         console.error("Ошибка при начале звонка:", error);
         startCallButton.disabled = false;
         endCallButton.disabled = true;
-        activeUsers -= 1;
+        // activeUsers -= 1;
     }
 });
 
@@ -187,7 +197,7 @@ endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
 
-    activeUsers -= 1;
+    // activeUsers -= 1;
     callStarted = false;
 
 
