@@ -11,14 +11,3 @@ services:
     ports:
       - 8080:8080
     restart: always
-
-  median_mesh:
-    container_name: median_mesh
-    env_file:
-      - .env
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - 4043:4043
-    restart: always
