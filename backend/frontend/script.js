@@ -45,7 +45,7 @@ async function updateOnlineCount() {
     }
 }
 
-setInterval(updateOnlineCount, 1000);
+setInterval(updateOnlineCount, 500);
 
 async function updateActiveCount() {
     try {

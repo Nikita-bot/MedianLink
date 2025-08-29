@@ -97,7 +97,7 @@ func countUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(strconv.Itoa(count)))
 }
 
-func countActiveUsers(w http.ResponseWriter, r *http.Request){
+func countActiveUsers(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(strconv.Itoa(countActive)))
 }
@@ -111,7 +111,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Добавление клиента
 	mutex.Lock()
 	clients[conn] = true
 	mutex.Unlock()
@@ -130,12 +129,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		for client := range clients {
 			if msg.Action == "call_started" || msg.Action == "call_ended" {
 				if client != conn {
-					if msg.Action == "call_started"{		
+					if msg.Action == "call_started" {
 						countActive = countActive + 1
 						log.Println("Активных звонарей: ", countActive)
 						break
 					}
-					if msg.Action == "call_ended"{
+					if msg.Action == "call_ended" {
 						countActive = countActive - 1
 						if countActive < 0 {
 							countActive = 0
@@ -144,7 +143,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 						break
 					}
 				}
-				
+
 			} else {
 				if client != conn {
 					err := client.WriteJSON(msg)
@@ -162,7 +161,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	mutex.Lock()
 	delete(clients, conn)
-	if len(clients) < countActive{
+	if len(clients) < countActive {
 		countActive = countActive - 1
 	}
 	mutex.Unlock()
