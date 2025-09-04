@@ -25,25 +25,40 @@ type (
 	}
 
 	WSMessage struct {
-		Action    string      `json:"action,omitempty"`    // "call_started", "call_ended"
-		Offer     interface{} `json:"offer,omitempty"`     // WebRTC offer
-		Answer    interface{} `json:"answer,omitempty"`    // WebRTC answer
-		Candidate interface{} `json:"candidate,omitempty"` // ICE candidate
+		Action    string      `json:"action,omitempty"`
+		Offer     interface{} `json:"offer,omitempty"`
+		Answer    interface{} `json:"answer,omitempty"`
+		Candidate interface{} `json:"candidate,omitempty"`
+	}
+
+	Client struct {
+		conn   *websocket.Conn
+		inCall bool
+	}
+
+	Server struct {
+		clients     map[*websocket.Conn]*Client
+		countActive int
+		mutex       sync.RWMutex
+		config      Config
 	}
 )
 
-var clients = make(map[*websocket.Conn]bool)
-var countActive = 0
-var mutex = &sync.Mutex{}
-
 func New() (Config, error) {
 	var c Config
-
 	err := env.ParseWithOptions(&c, env.Options{RequiredIfNoDef: true})
 	if err != nil {
 		return Config{}, err
 	}
 	return c, nil
+}
+
+func NewServer(cfg Config) *Server {
+	return &Server{
+		clients: make(map[*websocket.Conn]*Client),
+		mutex:   sync.RWMutex{},
+		config:  cfg,
+	}
 }
 
 func main() {
@@ -55,9 +70,11 @@ func main() {
 		return
 	}
 
+	s := NewServer(c)
+
 	fs := http.FileServer(http.Dir("/app/frontend"))
 	mux.Handle("/", fs)
-	mux.HandleFunc("/ws", handleWebSocket)
+	mux.HandleFunc("/ws", s.handleWebSocket)
 	mux.HandleFunc("/checkUser", func(w http.ResponseWriter, r *http.Request) {
 		login := r.FormValue("login")
 
@@ -67,8 +84,8 @@ func main() {
 			w.Write([]byte("Failed"))
 		}
 	})
-	mux.HandleFunc("/count", countUsers)
-	mux.HandleFunc("/active", countActiveUsers)
+	mux.HandleFunc("/count", s.countUsers)
+	mux.HandleFunc("/active", s.countActiveUsers)
 
 	certFile := "/app/cert/fullchain1.pem"
 	keyFile := "/app/cert/privkey1.pem"
@@ -89,33 +106,53 @@ func main() {
 	}
 }
 
-func countUsers(w http.ResponseWriter, r *http.Request) {
-	mutex.Lock()
-	count := len(clients)
-	mutex.Unlock()
-
+func (s *Server) countUsers(w http.ResponseWriter, r *http.Request) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	count := len(s.clients)
 	w.Write([]byte(strconv.Itoa(count)))
 }
 
-func countActiveUsers(w http.ResponseWriter, r *http.Request) {
-
-	w.Write([]byte(strconv.Itoa(countActive)))
+func (s *Server) countActiveUsers(w http.ResponseWriter, r *http.Request) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	w.Write([]byte(strconv.Itoa(s.countActive)))
 }
 
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("Новое соединение")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Ошибка при обновлении соединения:", err)
 		return
 	}
-	defer conn.Close()
 
-	mutex.Lock()
-	clients[conn] = true
-	mutex.Unlock()
+	// Создаем клиента и добавляем его в карту
+	client := &Client{conn: conn, inCall: false}
 
-	log.Println("Новый клиент подключен")
+	s.mutex.Lock()
+	s.clients[conn] = client
+	s.mutex.Unlock()
+
+	log.Println("Новый клиент подключен. Всего клиентов:", len(s.clients))
+
+	defer func() {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+
+		// Если клиент был в звонке, уменьшаем счетчик активных
+		if client.inCall {
+			s.countActive--
+			if s.countActive < 0 {
+				s.countActive = 0
+			}
+			log.Println("Клиент в звонке отключен. Активных звонарей:", s.countActive)
+		}
+
+		delete(s.clients, conn)
+		conn.Close()
+		log.Println("Клиент отключен. Всего клиентов:", len(s.clients))
+	}()
 
 	for {
 		var msg WSMessage
@@ -125,45 +162,35 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		mutex.Lock()
-		for client := range clients {
-			if msg.Action == "call_started" || msg.Action == "call_ended" {
-				if client != conn {
-					if msg.Action == "call_started" {
-						countActive = countActive + 1
-						log.Println("Активных звонарей: ", countActive)
-						break
-					}
-					if msg.Action == "call_ended" {
-						countActive = countActive - 1
-						if countActive < 0 {
-							countActive = 0
-						}
-						log.Println("Активных звонарей: ", countActive)
-						break
-					}
+		s.mutex.Lock()
+		switch msg.Action {
+		case "call_started":
+			if !client.inCall {
+				client.inCall = true
+				s.countActive++
+				log.Println("Новый звонок начат. Активных звонарей:", s.countActive)
+			}
+		case "call_ended":
+			if client.inCall {
+				client.inCall = false
+				s.countActive--
+				if s.countActive < 0 {
+					s.countActive = 0
 				}
-
-			} else {
-				if client != conn {
-					err := client.WriteJSON(msg)
+				log.Println("Звонок завершен. Активных звонарей:", s.countActive)
+			}
+		default:
+			// Ретрансляция сообщений другим клиентам
+			for _, otherClient := range s.clients {
+				if otherClient.conn != conn {
+					err := otherClient.conn.WriteJSON(msg)
 					if err != nil {
 						log.Println("Ошибка при отправке сообщения:", err)
-						client.Close()
-						delete(clients, client)
+						// Обработка отключения клиента будет в defer
 					}
 				}
 			}
-
 		}
-		mutex.Unlock()
+		s.mutex.Unlock()
 	}
-
-	mutex.Lock()
-	delete(clients, conn)
-	if len(clients) < countActive {
-		countActive = countActive - 1
-	}
-	mutex.Unlock()
-	log.Println("Клиент отключен")
 }

@@ -168,7 +168,6 @@ startCallButton.addEventListener('click', async () => {
     startCallButton.disabled = true;
     endCallButton.disabled = false;
     
-    // activeUsers +=1;
     callStarted = true;
 
     try {
@@ -188,7 +187,6 @@ startCallButton.addEventListener('click', async () => {
         console.error("Ошибка при начале звонка:", error);
         startCallButton.disabled = false;
         endCallButton.disabled = true;
-        // activeUsers -= 1;
     }
 });
 
@@ -197,7 +195,6 @@ endCallButton.addEventListener('click', () => {
     startCallButton.disabled = false;
     endCallButton.disabled = true;
 
-    // activeUsers -= 1;
     callStarted = false;
 
 
