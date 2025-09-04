@@ -55,7 +55,7 @@ func main() {
 		return
 	}
 
-	fs := http.FileServer(http.Dir("app/frontend"))
+	fs := http.FileServer(http.Dir("/app/frontend"))
 	mux.Handle("/", fs)
 	mux.HandleFunc("/ws", handleWebSocket)
 	mux.HandleFunc("/checkUser", func(w http.ResponseWriter, r *http.Request) {
@@ -70,11 +70,11 @@ func main() {
 	mux.HandleFunc("/count", countUsers)
 	mux.HandleFunc("/active", countActiveUsers)
 
-	certFile := "app/cert/median-map_online_cert.pem"
-	keyFile := "app/cert/median-map_online_private_key.pem"
+	certFile := "/app/cert/fullchain1.pem"
+	keyFile := "/app/cert/privkey1.pem"
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":8888",
 		Handler: mux,
 		TLSConfig: &tls.Config{
 			MinVersion: tls.VersionTLS12,

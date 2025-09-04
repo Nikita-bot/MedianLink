@@ -21,14 +21,12 @@ RUN apk update --no-cache
 
 WORKDIR /app
 
-COPY ./cert app/cert
-COPY ./frontend app/frontend
+COPY ./frontend /app/frontend
 
 # Копируем скомпилированный бинарник из builder-образа
 COPY --from=builder /app/server /app/server
-
 # Открываем порт 8888
-EXPOSE 8080
+EXPOSE 8888
 
 # Запускаем сервер
 CMD ["/app/server"]

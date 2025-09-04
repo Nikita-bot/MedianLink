@@ -8,6 +8,8 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
+    volumes:
+      - /etc/letsencrypt/archive/dullbox.ru/:/app/cert/
     ports:
-      - 8080:8080
+      - 8888:8888
     restart: always

@@ -37,7 +37,7 @@ function clearPin() {
 
 async function updateOnlineCount() {
     try {
-        const response = await fetch("/count");
+        const response = await fetch("https://dullbox.ru/count");
         const onlineCount = await response.text();
         document.getElementById("onlineCount").textContent = onlineCount;
     } catch (error) {
@@ -49,7 +49,7 @@ setInterval(updateOnlineCount, 500);
 
 async function updateActiveCount() {
     try {
-        const response = await fetch("/active");
+        const response = await fetch("https://dullbox.ru/active");
         const onlineCount = await response.text();
         activeUsers = Number(onlineCount);
         updateCheckers();
@@ -86,7 +86,7 @@ function updateCallButtonState() {
 document.getElementById("loginBtn").addEventListener("click", function() {
     const login = document.getElementById("login").innerText;
     
-    fetch("/checkUser", {
+    fetch("https://dullbox.ru/checkUser", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `login=${login}`
@@ -105,7 +105,7 @@ document.getElementById("loginBtn").addEventListener("click", function() {
 
 
 function connectWebSocket() {
-    ws = new WebSocket('wss://median-map.online:8080/ws');
+    ws = new WebSocket('wss://dullbox.ru/ws');
 
     ws.onopen = () => {
         console.log("WebSocket соединение установлено");
