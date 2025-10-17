@@ -15,12 +15,12 @@ let callStarted = false;
 const configuration = {
     iceServers: [
         {
-            urls: "stun:stun.l.google.com:19302",
+            urls: "stun:phone.dullbox.ru:3478",
         },
         {
-            urls: "turn:your-turn-server.com:3478",
-            username: "your-username",
-            credential: "your-password",
+            urls: "turn:phone.dullbox.ru:3478",
+            username: "MedianLink",
+            credential: "MedianPassLinkWord_3123-41",
         },
     ],
 };
@@ -37,7 +37,7 @@ function clearPin() {
 
 async function updateOnlineCount() {
     try {
-        const response = await fetch("https://dullbox.ru/count");
+        const response = await fetch("https://phone.dullbox.ru/count");
         const onlineCount = await response.text();
         document.getElementById("onlineCount").textContent = onlineCount;
     } catch (error) {
@@ -49,7 +49,7 @@ setInterval(updateOnlineCount, 500);
 
 async function updateActiveCount() {
     try {
-        const response = await fetch("https://dullbox.ru/active");
+        const response = await fetch("https://phone.dullbox.ru/active");
         const onlineCount = await response.text();
         activeUsers = Number(onlineCount);
         updateCheckers();
@@ -86,7 +86,7 @@ function updateCallButtonState() {
 document.getElementById("loginBtn").addEventListener("click", function() {
     const login = document.getElementById("login").innerText;
     
-    fetch("https://dullbox.ru/checkUser", {
+    fetch("https://phone.dullbox.ru/checkUser", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `login=${login}`
@@ -105,7 +105,7 @@ document.getElementById("loginBtn").addEventListener("click", function() {
 
 
 function connectWebSocket() {
-    ws = new WebSocket('wss://dullbox.ru/ws');
+    ws = new WebSocket('wss://phone.dullbox.ru/ws');
 
     ws.onopen = () => {
         console.log("WebSocket соединение установлено");
