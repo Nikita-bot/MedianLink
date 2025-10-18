@@ -14,15 +14,18 @@ let callStarted = false;
 
 const configuration = {
     iceServers: [
-        {
-            urls: "stun:phone.dullbox.ru:3478",
-        },
-        {
-            urls: "turn:phone.dullbox.ru:3478",
-            username: "MedianLink",
-            credential: "MedianPassLinkWord_3123-41",
-        },
+      { urls: "stun:phone.dullbox.ru:3478" },
+      {
+        urls: [
+            "turn:phone.dullbox.ru:3478?transport=udp",
+            "turn:phone.dullbox.ru:3478?transport=tcp",
+            "turns:phone.dullbox.ru:5349?transport=tcp"
+        ],
+        username: "MedianLink",
+        credential: "MedianPassLinkWord_3123-41"
+      }
     ],
+
 };
 
 function addDigit(digit) {

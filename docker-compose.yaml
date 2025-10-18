@@ -15,22 +15,3 @@ services:
     restart: always
     depends_on:
       - coturn
-
-  coturn:
-    image: coturn/coturn:latest
-    container_name: coturn
-    restart: always
-    network_mode: "host" 
-    command:
-      - "--log-file=stdout"
-      - "--lt-cred-mech"
-      - "--no-cli"
-      - "--no-tls"
-      - "--no-dtls"
-      - "--realm=${TURN_REALM}"
-      - "--user=${TURN_USER}:${TURN_PASS}"
-      - "--fingerprint"
-      - "--listening-port=${TURN_PORT}"
-      - "--min-port=49152"
-      - "--max-port=49200"
-      - "--verbose"
